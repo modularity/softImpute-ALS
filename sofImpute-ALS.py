@@ -7,7 +7,7 @@ from scipy import linalg
 import numpy as np
 
 
-filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
+#filename="******/ratings.dat"
 
 def loadMatrix(filename):
 
