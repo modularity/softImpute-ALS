@@ -6,7 +6,7 @@ from scipy import linalg
 import numpy as np
 
 
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+filename="*******/ml-100k/u.data"
 
 def loadMatrix(filename):
   array=np.genfromtxt(filename)
