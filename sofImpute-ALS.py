@@ -5,157 +5,187 @@ import scipy
 from scipy import linalg
 import numpy as np
 
+"""
 
-filename="*******/ml-100k/u.data"
+Implementation of Algorithm 3.1 on page 3375 of "Matrix Completion and Low-Rank SVD via
+Fast Alternating Least Squares" by Hastie et al(2015)
 
-def loadMatrix(filename):
-  array=np.genfromtxt(filename)
-  userID=array[:,0]
-  movieID=array[:,1]
-  values=array[:,2]
-  X=sps.coo_matrix((values,(userID-1,movieID-1)),shape=(943,1682))
-  #returns a coo_matrix X
+"""
+
+## filename="*******/ml-100k/u.data"
+# data file
+movielens100k="movielens/u.data"
+
+# returns a coo_matrix X
+def arraytoXmatrix(array):
+  userID = array[:,0]
+  movieID = array[:,1]
+  values = array[:,2]
+  X = sps.coo_matrix((values,(userID-1,movieID-1)),shape=(943,1682))
   return X
 
-# Algorithm 3.1
-def main():
-  print "loading matrix X"
-  X=loadMatrix(filename)
-  m,n=np.shape(X)
-  r=15
-  Lambda=50
-  # 1.initialize matrix U
-  #m>>r
+# convert observed matrix X to dok and transpose
+def dokNtranspose(X):
+  print "changing X to dok_matrix"
+  X = X.todok()
+  X_t = X.transpose()
+  return X,X_t
 
+# Omega is the <'list'> of coordinates with nonzero entries
+def initOmega(X, X_t):
+  print "obtaining Omega"
+  Omega = X.keys()
+  Omega_t = X_t.keys()
+  return Omega, Omega_t
+
+def main():
+
+  # stores all data in file within an array
+  array = np.genfromtxt(movielens100k)
+
+  # returns a coo_matrix X
+  print "loading matrix X"
+  X = arraytoXmatrix(array)
+  m,n = np.shape(X)
+  r = 15
+
+  # specify regulation parameter
+  Lambda = 60
+
+  """ 
+  Step 1: initialize matrix U as a random matrix
+  U becomes a matrix with orthonormal columns
+  Initialize D = I(r), B = VD with V = 0
+  """
+  #U is an mxr matrix, m>>r  
   print "creating U"
-  #U is an mxr matrix
   U = np.random.randn(m, r)
-  #Calling QR Factorization on U
+
+  # Calling QR Factorization on U
   print "QR Factorization"
   Q,R = linalg.qr(U)
-  U=Q[:,0:r]
-  #U is now a matrix with orthonormal columns
-  
-  #D is an rxr identity matrix of type numpy.ndarray
-  D=np.identity(r)
-  A=U.dot(D)
+  U = Q[:,0:r]
+ 
+  # D is an rxr identity matrix of type numpy.ndarray
+  D = np.identity(r)
 
-  #V is nxr
-  V=np.zeros(n*r).reshape(n,r)
-  #B is an nxr matrix
-  B=V.dot(D)
+  """ 
+  Step 2: initialize A = UD, B = VD and solve term (20) to update B.
+  This updating process has 3 substeps: a, b, c. 
+  Note - the iterative component of this algorithm repeats steps 2 and 3.
+  """
+  # A = UD
+  A = U.dot(D)
 
-  print "changing X to dok_matrix"
+  # V is an nxr matrix
+  V = np.zeros(n*r).reshape(n,r)
   
-  X=X.todok()
-  Xt=X.transpose()
+  # B is an nxr matrix
+  B = V.dot(D)
+
+  #convert observed matrix X to dok and transpose
+  X, X_t = dokNtranspose(X)
+  
   #Omega is the <'list'> of coordinates with nonzero entries
-
-  print "obtaining Omega"
-  Omega=X.keys()
-  Omegat=Xt.keys()
+  Omega, Omega_t = initOmega(X, X_t)
   
   print "setting threshold"
-  threshold=10**(-5)
+  threshold = 10**(-5)
+
+  # variables: X, Lambda, Omega, A, B, D, U
+  # updating B for substep 2b
   while(True):
-    print "updating B"
-    # term (22)
-    temp=X
-    print "iterating over Omega"
+
+    #store once to reuse in (22) and (23)
+    DD = D**D
+    DDlambda = DD + Lambda*np.identity(r)
+    U_t = np.transpose(U)
+    B_t = np.transpose(B)
+
+    # create sparse plus low-rank matrix analog for X
+    tempX = X
+    print "iterating over Omega : B"
     for cood in Omega:
-      i,j=cood
-      #find the (i,j)-th value of A*B^t
-      temp[i,j] = X[i,j]-A[i,:].dot((np.transpose(B)[:,j]))
-      
+      i,j = cood
+      #find the (i,j)th value of A*B^t
+      tempX[i,j] = X[i,j] - A[i,:].dot((B_t[:,j]))
     print "finished iteration"
-    temp=temp.tocsr()
-    temp=(np.transpose(U))*temp
-    temp=D.dot(temp)
-    twenty_two=linalg.solve(D*D+Lambda*np.identity(r),temp)
+
+    # term (22) in Algorithm 3.1
+    tempX = tempX.tocsr()
+    tempX = (U_t)*tempX
+    tempX = D.dot(tempX)
+    twenty_two = linalg.solve( DDlambda, tempX )
     
-    # term (23)
-    temp=(D**2).dot(B.transpose())
-    twenty_three=linalg.solve(D.dot(D)+Lambda*np.identity(r),temp)
+    # term (23) in Algorithm 3.1
+    tempX = (DD).dot(B_t)
+    twenty_three = linalg.solve( DDlambda, tempX )
     
-    B=np.transpose(twenty_two+twenty_three)
+    # sum (22) and (23) to update B
+    B = np.transpose(twenty_two+twenty_three)
     
     # part(c) i.e. updating V and D
-    
-    V_new,D_squared,Vt = linalg.svd(B.dot(D),full_matrices=False)
-    D_new=np.sqrt(D_squared)
-    D_new=np.diagflat(D_new)
+    V_new,D_squared,V_t = linalg.svd(B.dot(D),full_matrices=False)
+    D_new = np.sqrt(D_squared)
+    D_new = np.diagflat(D_new)
 
     # checking for convergence of B using (19) on page 3372
     nebla_FB=(np.trace(D**2)+np.trace(D_new**2)-2*np.trace(D.dot(np.transpose(V)).dot(V_new).dot(D_new)))/np.trace(D**2)
-
+  
     #updating V, D and B=VD
-    V=V_new
-    D=D_new
-    B=V.dot(D)
+    V = V_new
+    D = D_new
+    B = V.dot(D)
 
-    
-    # Step 3
+    """ 
+    Step 3: 
+    Note - the iterative component of this algorithm repeats steps 2 and 3.
+    """
     
     # term (22')
-    print "Updating A"
-    temp=Xt
+    # Updating A
+    tempX = X_t
 
-    print "iterating over Omega"
-    for cood in Omegat:
-      i,j=cood
-      temp[i,j] = Xt[i,j]-B[i,:].dot((np.transpose(A)[:,j]))
+    #update from step2 for reuse 
+    DD = D**D
+    DDlambda = DD + Lambda*np.identity(r)
+    A_t = np.transpose(A)
+
+    print "iterating over Omega : A"
+    for cood in Omega_t:
+      i,j = cood
+      tempX[i,j] = X_t[i,j]-B[i,:].dot((np.transpose(A)[:,j]))
+
+    tempX = tempX.tocsr()
+    tempX = (np.transpose(V))*tempX
+    tempX = D.dot(tempX)
+    twenty_two = linalg.solve(DDlambda,tempX)
     
-    print "finished iteration"
-    temp=temp.tocsr()
-    temp=(np.transpose(V))*temp
-    temp=D.dot(temp)
-    twenty_two=linalg.solve(D*D+Lambda*np.identity(r),temp)
+    # term (23')D_
+    tempX = D.dot(A_t)
+    tempX = D.dot(tempX)
+    twenty_three = linalg.solve(DDlambda,tempX)   
     
-    # term (23')
-    temp=D.dot(A.transpose())
-    temp=D.dot(temp)
-    twenty_three=linalg.solve(D.dot(D)+Lambda*np.identity(r),temp)
-    
-    A=np.transpose(twenty_two+twenty_three)
+    A = np.transpose(twenty_two+twenty_three)
     
     # part (c) updating U and D
-    U_new,D_squared,Vt = linalg.svd(A.dot(D),full_matrices=False)
-    D_new=np.sqrt(D_squared)
-    D_new=np.diagflat(D_new)
+    U_new,D_squared,V_t = linalg.svd(A.dot(D),full_matrices=False)
+    D = np.diagflat(np.sqrt(D_squared))
     
     # Checking for convergence of A
     nebla_FA=(np.trace(D**2)+np.trace(D_new**2)-2*np.trace(D.dot(np.transpose(U)).dot(U_new).dot(D_new)))/np.trace(D**2)
-    
+     
     # Updating U, D and A=UD
-    U=U_new
-    D=D_new
-    A=U.dot(D)
+    A = U.dot(D)
     
     print "nebla_FA is:" +str(nebla_FA)
     print "nebla_FB is:" +str(nebla_FB)
 
     #If both have converged we break the loop
-    if(nebla_FA<threshold and nebla_FB<threshold):
+    if (nebla_FA<threshold and nebla_FB<threshold):
       break
 
     print "threshold not reached, continue"
 
-
 if __name__ == '__main__':
   main()
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
