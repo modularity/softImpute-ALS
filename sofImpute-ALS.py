@@ -187,6 +187,19 @@ def main():
       break
 
     print "threshold not reached, continue"
+    
+  Bt=B.T
+  ABt=A.dot(Bt)
+  for cood in Omega:
+      i,j=cood
+      X[i,j] = X[i,j]-A[i,:].dot((Bt[:,j]))
+      
+  X=X.todense()
+  Xstar=X+ABt
+  M=Xstar.dot(V)
+  U,D,Rt=linalg.svd(M,full_matrices=False)
+  V=V.dot(Rt.T)
+  D=np.diagflat(D)
 
 if __name__ == '__main__':
   main()
