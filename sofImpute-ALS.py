@@ -62,10 +62,11 @@ def main():
     # term (22)
     temp=X
     print "iterating over Omega"
+    Bt=B.T
     for cood in Omega:
       i,j=cood
       #find the (i,j)-th value of A*B^t
-      temp[i,j] = X[i,j]-A[i,:].dot((np.transpose(B)[:,j]))
+      temp[i,j] = X[i,j]-A[i,:].dot(Bt[:,j]))
       
     print "finished iteration"
     temp=temp.tocsr()
@@ -101,9 +102,10 @@ def main():
     temp=Xt
 
     print "iterating over Omega"
+    At=A.T
     for cood in Omegat:
       i,j=cood
-      temp[i,j] = Xt[i,j]-B[i,:].dot((np.transpose(A)[:,j]))
+      temp[i,j] = Xt[i,j]-B[i,:].dot(At[:,j]))
     
     print "finished iteration"
     temp=temp.tocsr()
