@@ -22,13 +22,14 @@ Omega = None
 Omega_t = None
 X = None
 X_t = None
-r = 15
+r = 5
 
 # specify regulation parameter
-LAMBDA = 60
+LAMBDA = 300
 
 # returns a coo_matrix X
 def arraytoXmatrix(array):
+  global X
   userID = array[:,0]
   movieID = array[:,1]
   values = array[:,2]
@@ -50,6 +51,8 @@ def initOmega(X, X_t):
   return Omega, Omega_t
 
 def init():
+  global X, X_t, Omega, Omega_t
+
   # stores all data in file within an array
   array = np.genfromtxt(movielens100k)
 
@@ -90,11 +93,9 @@ def init():
   B = V.dot(D)
 
   #convert observed matrix X to dok and transpose
-  global X, X_t
   X, X_t = dokNtranspose(X)
   
   #Omega is the <'list'> of coordinates with nonzero entries
-  global Omega, Omega_t
   Omega, Omega_t = initOmega(X, X_t)
   return { 'A': A, 'B': B, 'D': D, 'U': U, 'V': V, 'finished': False }
 
@@ -201,10 +202,16 @@ def main():
   # output: M, U, V, Diag
   state = init();
  
+
+   #iterations count
+  iterations=0
+
   while(state['finished'] == False):
     state = calculate(state['A'], state['B'], state['D'], state['U'], state['V'])
-
+    iterations+=1
+    print "number of iterations: " +str(iterations)
   print "finished"
+
 
 if __name__ == '__main__':
   main()
