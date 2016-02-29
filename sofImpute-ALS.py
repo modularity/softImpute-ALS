@@ -91,7 +91,8 @@ def main():
   
   print "setting threshold"
   threshold = 10**(-5)
-
+  #iterations count
+  iterations=0
   # variables: X, Lambda, Omega, A, B, D, U
   # updating B for substep 2b
   while(True):
@@ -181,6 +182,8 @@ def main():
     
     print "nebla_FA is:" +str(nebla_FA)
     print "nebla_FB is:" +str(nebla_FB)
+    iterations+=1
+    print "number of iterations: " +str(iterations)
 
     #If both have converged we break the loop
     if (nebla_FA<threshold and nebla_FB<threshold):
