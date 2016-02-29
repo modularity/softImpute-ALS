@@ -97,13 +97,13 @@ def main():
   while(True):
 
     #store once to reuse in (22) and (23)
-    DD = D**D
+    DD = D**2  #** is matrix raised to a certain power I think if you want to form DD it should be D**2
     DDlambda = DD + Lambda*np.identity(r)
     U_t = np.transpose(U)
     B_t = np.transpose(B)
 
     # create sparse plus low-rank matrix analog for X
-    tempX = X
+    tempX = sps.dok_matrix(X)
     print "iterating over Omega : B"
     for cood in Omega:
       i,j = cood
@@ -145,10 +145,10 @@ def main():
     # term (22')
     # Updating A
     print "Updating A"
-    tempX = X_t
+    tempX = sps.dok_matrix(X_t)
 
     #update from step2 for reuse 
-    DD = D**D
+    DD = D**2
     DDlambda = DD + Lambda*np.identity(r)
     A_t = np.transpose(A)
 
