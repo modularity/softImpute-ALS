@@ -47,10 +47,10 @@ def main():
   print "loading matrix X"
   X = arraytoXmatrix(array)
   m,n = np.shape(X)
-  r = 15
+  r = 5
 
   # specify regulation parameter
-  Lambda = 60
+  Lambda = 300
 
   """ 
   Step 1: initialize matrix U as a random matrix
