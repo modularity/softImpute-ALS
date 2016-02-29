@@ -144,6 +144,7 @@ def main():
     
     # term (22')
     # Updating A
+    print "Updating A"
     tempX = X_t
 
     #update from step2 for reuse 
@@ -154,13 +155,13 @@ def main():
     print "iterating over Omega : A"
     for cood in Omega_t:
       i,j = cood
-      tempX[i,j] = X_t[i,j]-B[i,:].dot((np.transpose(A)[:,j]))
+      tempX[i,j] = X_t[i,j]-B[i,:].dot((A_t[:,j]))
 
     tempX = tempX.tocsr()
     tempX = (np.transpose(V))*tempX
     tempX = D.dot(tempX)
     twenty_two = linalg.solve(DDlambda,tempX)
-    
+
     # term (23')D_
     tempX = D.dot(A_t)
     tempX = D.dot(tempX)
