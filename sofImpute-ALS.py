@@ -5,8 +5,6 @@ import scipy
 from scipy import linalg
 import numpy as np
 
-import rpy2
-
 """
 
 Implementation of Algorithm 3.1 on page 3375 of "Matrix Completion and Low-Rank SVD via
@@ -99,62 +97,11 @@ def init():
   Omega, Omega_t = initOmega(X, X_t)
   return { 'A': A, 'B': B, 'D': D, 'U': U, 'V': V, 'finished': False }
 
-# utilize Hastie et al's softImpute() in R for comparison method
-# wrapper from R to python with rp2
-def softImputeR(X, r, LAMBDA, type, thresh , maxit, trace.it, warm.start, final.svd): 
-"""
-softImpute(x, rank.max = 2, lambda = 0, type = c("als", "svd"), thresh = 1e-05,
-maxit = 100, trace.it = FALSE, warm.start = NULL, final.svd = TRUE)
-x
-An m by n matrix with NAs, can be of class "Incomplete"
-can hbe centered and scaled via biScale()
-
-rank.max
-This restricts the rank of the solution. If sufficiently large, and with
-type="svd" the solution solves the nuclear-norm convex matrix-completion problem. 
-In this case the number of nonzero singular values returned will be less than or equal to rank.max.
-If smaller ranks are used, the solution is not guaranteed to solve the problem, although still results in good local minima.
-rank.max should be no bigger than min(dim(x)-1
-
-lambda
-nuclear-norm regularization parameter. If lambda=0, algorithm reverts to "hardImpute", 
-convergence is typically slower & to local minimum.
-Ideally lambda should be chosen so that the solution reached has rank slightly less than rank.max. 
-See lambda0() for computing the smallestlambda with a zero solution.
-
-type
-two algorithms are implements, type="svd" or the default type="als". 
-The "svd" algorithm repeatedly computes the svd of the completed matrix, and soft thresholds  its  singular  values.   
-Each  new  soft-thresholded  svd  is  used  to  re-impute the missing entries.  
-For large matrices of class "Incomplete", the svd is achieved by an efficient form of alternating orthogonal ridge regression. 
-The softImpute "als" algorithm uses this same alternating ridge regression, but updates the imputation at each step, 
-leading to quite substantial speedups in some cases.  
-The "als" approach does not currently have the same theoretical convergence guarantees as the "svd" approach.
-
-thresh
-convergence threshold, measured as the relative change in the Frobenius norm between two successive estimates.
-
-maxit
-maximum number of iterations.
-
-trace.it
-with trace.it=TRUE, convergence progress is reported.
-
-warm.start
-an svd object can be supplied as a warm start.  This is particularly useful when constructing a path of solutions with 
-decreasing values of lambda and increasing rank.max.  The previous solution can be provided directly as a warm start for the next.
-
-final.svd
-only applicable to type="als".  The alternating ridge-regressions do not lead to exact zeros.  
-With the default final.svd=TRUE, at the final iteration, a one step unregularized iteration is performed, 
-followed by soft-thresholding of the singular values, leading to hard z
-"""
-
 def calculate(A, B, D, U, V):
   global LAMBDA, Omega, Omega_t, X, X_t
 
   #store once to reuse in (22) and (23)
-  DD = D**D
+  DD = D**2
   DDlambda = DD + LAMBDA*np.identity(r)
   U_t = np.transpose(U)
   B_t = np.transpose(B)
@@ -165,7 +112,9 @@ def calculate(A, B, D, U, V):
   for cood in Omega:
     i,j = cood
     #find the (i,j)th value of A*B^t
-    tempX[i,j] = X[i,j] - A[i,:].dot((B_t[:,j]))
+    bt = B_t[:,j]
+    tempX[i,j] = X[i,j] - A[i,:].dot(bt)
+
   print "finished iteration"
 
   # term (22) in Algorithm 3.1
@@ -173,7 +122,7 @@ def calculate(A, B, D, U, V):
   tempX = (U_t)*tempX
   tempX = D.dot(tempX)
   twenty_two = linalg.solve( DDlambda, tempX )
-  
+
   # term (23) in Algorithm 3.1
   tempX = (DD).dot(B_t)
   twenty_three = linalg.solve( DDlambda, tempX )
@@ -184,11 +133,10 @@ def calculate(A, B, D, U, V):
   
   # part(c) i.e. updating V and D
   V_new,D_squared,V_t = linalg.svd(B.dot(D),full_matrices=False)
-  D_new = np.sqrt(D_squared)
-  D_new = np.diagflat(D_new)
+  D_new = np.diagflat(np.sqrt(D_squared))
 
   # checking for convergence of B using (19) on page 3372
-  nebla_FB=(np.trace(D**2)+np.trace(D_new**2)-2*np.trace(D.dot(np.transpose(V)).dot(V_new).dot(D_new)))/np.trace(D**2)
+  nebla_FB=(np.trace(DD)+np.trace(D_new**2)-2*np.trace(D.dot(np.transpose(V)).dot(V_new).dot(D_new)))/np.trace(DD)
 
   #updating V, D and B=VD
   V = V_new
