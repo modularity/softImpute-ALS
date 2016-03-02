@@ -86,6 +86,7 @@ def main():
     xhat=U.dot(D**2).dot(V.T)
     tempx[row,col]=xhat[row,col]
     
+    # measuring convergence of B
     D_squared=np.diagflat(D_squared)
     denom=np.trace(D_squared_old**2)
     UtU=D_squared.dot((U.T.dot(U_old)))
@@ -110,7 +111,7 @@ def main():
     tempx[row,col]=xhat[row,col]
       
       
-    # measuring convergence
+    # measuring convergence of V
     D_squared=np.diagflat(D_squared)
     denom=np.trace(D_squared_old**2)
     UtU=D_squared.dot((U.T.dot(U_old)))
