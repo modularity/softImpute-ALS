@@ -91,7 +91,7 @@ def main():
   print(xnas)
 
   nz=m*n-sum(xnas)
-  xfill = X[:]
+  xfill = X
   #---
   print "setting threshold"
   threshold=10**(-6)
@@ -115,9 +115,9 @@ def main():
     B=np.dot(U.T, xfill)
     #if(lambda>0)B=B*(Dsq/(Dsq+lambda))
     dsqRatio = np.divide(Dsq,Dsq+Lambda)
-    B=B*dsqRatio
+    B=np.dot(dsqRatio, B)
     #Bsvd=svd(t(B))
-    u,d,v=linalg.svd(B.T)
+    u,d,v=linalg.svd(B.T, full_matrices=False)
     #V=Bsvd$u
     V=u
     #Dsq=(Bsvd$d)
@@ -125,14 +125,18 @@ def main():
     #U=U%*%Bsvd$v
     U=np.dot(U,v)
     #xhat=U %*%(Dsq*t(V))
-    Xstar=np.dot(U, Dsq*(V.T))
+    
+    print(np.shape(U))
+    print(np.shape(Dsq))
+    print(np.shape(V))
+    xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
-    #xfill[xnas]=Xstar[xnas]
+    xfill[xnas]=xhat[xnas]
 
 
     ###The next line we could have done later; this is to match with sparse version
     # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
-    obj=(.5*sum((xfill-Xstar)[xnas==False]**2)+Lambda*sum(d))/nz
+    obj=(.5*sum((xfill-xhat)[xnas==False]**2)+Lambda*sum(d))/nz
     
     ## V step
     
@@ -148,9 +152,9 @@ def main():
     #V=V %*% Asvd$v
     V=V.dot(linalg.svd(A,V))
     #xhat=U %*%(Dsq*t(V))
-    Xstar=U.dot(Dsq.dot(V.T))
+    xhat=U.dot(Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
-    xfill[xnas]=Xstar[xnas]
+    xfill[xnas]=xhat[xnas]
     ratio=Frob(U.old,Dsq.old,V.old,U,Dsq,V)
     ratio=np.linalg.norm('fro')
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
@@ -186,8 +190,8 @@ def main():
       i,j=cood
       X[i,j] = X[i,j]-ABt[i,j]
       
-  Xstar=X+ABt
-  M=Xstar.dot(V)
+  xhat=X+ABt
+  M=xhat.dot(V)
   U,D,Rt=linalg.svd(M,full_matrices=False)
   V=V.dot(Rt.T)
   #threshold the matrix D
