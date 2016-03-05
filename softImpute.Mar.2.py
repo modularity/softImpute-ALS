@@ -1,3 +1,4 @@
+#!/usr/bin/python 
 
 from sklearn import preprocessing
 import scipy.sparse as sps
@@ -9,8 +10,9 @@ import time
 import random
 
 
-# data file
-movielens100k="movielens/u.data"
+filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+#filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
+
 
 
 def generate_training_dataset(filename):
@@ -31,23 +33,10 @@ def loadMatrix(filename):
   #returns a coo_matrix X
   return X
 
-def Frob(Uold,Dsqold,Vold,U,Dsq,V):
-  denom=sum(Dsqold**2)
-  utu=Dsq* ((U.T).dot(Uold))
-  vtv=Dsqold* ((Vold.T).dot(V))
-  uvprod= sum(diag(utu.dot(vtv)))
-  num=denom+sum(Dsq**2) -2*uvprod
-  num = num/max(denom,1e-9)
-  return num
-  
-
 # Algorithm 3.1
 def main():
   print "loading matrix X"
-  X=loadMatrix(movielens100k)
-  print("load data from movielens100k")
-  print(X)
-
+  X=loadMatrix(filename)
   m,n=np.shape(X)
   # r is the rank
   r=5
@@ -67,7 +56,7 @@ def main():
   
   #D is an rxr identity matrix of type numpy.ndarray
   D=np.identity(r)
-  Dsq=D**2  
+  D_squared=D**2  
   A=U.dot(D)
 
   #V is nxr
@@ -81,18 +70,15 @@ def main():
   #Xt=X.transpose()
   #Omega is the <'list'> of coordinates with nonzero entries
 
+  print "obtaining Omega"
+  X=X.todok()
+  Omega=X.keys()
+  row=[o[0] for o in Omega]
+  col=[o[1] for o in Omega]
+  #Omegat=Xt.keys()
+  
   X=X.todense()
-  print("X todense")
-  print(X)
-
-  # ----
-  xnas = [y == 0 for y in X ]
-  print("NA vals")
-  print(xnas)
-
-  nz=m*n-sum(xnas)
-  xfill = X[:]
-  #---
+  X=preprocessing.scale(X)
   print "setting threshold"
   threshold=10**(-6)
   iterations=0
@@ -100,78 +86,86 @@ def main():
   # tempx is a copy of the sparse matrix to be used as Xstar
   #tempx=sps.coo_matrix(X)
   #tempx=tempx.todense()
+  tempx=X
   t=time.time()
-
-  print(X)
-
   while(True):
     U_old=U
     V_old=V
-    Dsq_old=Dsq
-
-    ## U step
-
-    #B=t(U)%*%xfill
-    B=np.dot(U.T, xfill)
-    #if(lambda>0)B=B*(Dsq/(Dsq+lambda))
-    dsqRatio = np.divide(Dsq,Dsq+Lambda)
-    B=B*dsqRatio
-    #Bsvd=svd(t(B))
-    u,d,v=linalg.svd(B.T)
-    #V=Bsvd$u
-    V=u
-    #Dsq=(Bsvd$d)
-    Dsq = np.diagflat(d)
-    #U=U%*%Bsvd$v
-    U=np.dot(U,v)
-    #xhat=U %*%(Dsq*t(V))
-    Xstar=np.dot(U, Dsq*(V.T))
-    #xfill[xnas]=xhat[xnas]
-    #xfill[xnas]=Xstar[xnas]
-
-
-    ###The next line we could have done later; this is to match with sparse version
-    # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
-    obj=(.5*sum((xfill-Xstar)[xnas==False]**2)+Lambda*sum(d))/nz
+    D_squared_old=D_squared
+    print "updating B"
     
-    ## V step
+    B_tilda_t=linalg.solve(D**2+Lambda*np.identity(r),D.dot(U.T.dot(tempx)))
+    B_tilda=B_tilda_t.T
+    #updating V and D_squared
+    V,D_squared,Vt=linalg.svd(B_tilda.dot(D),full_matrices=False)
+    D=np.sqrt(D_squared)
+    D=np.diagflat(D)
+    B=V.dot(D)
     
-    #A=t(xfill%*%V)
-    A=(np.dot(xfill,V)).T
-    #if(lambda>0)A=A*(Dsq/(Dsq+lambda))
-    A=np.dot(A, np.divide(Dsq,(Dsq+Lambda)))
-    #Asvd=svd(t(A))
-    U,d,V=svd(A.T)
-    #U=Asvd$u
-    #Dsq=Asvd$d
-    Dsq=np.diagflat(np.sqrt(d))
-    #V=V %*% Asvd$v
-    V=V.dot(linalg.svd(A,V))
-    #xhat=U %*%(Dsq*t(V))
-    Xstar=U.dot(Dsq.dot(V.T))
-    #xfill[xnas]=xhat[xnas]
-    xfill[xnas]=Xstar[xnas]
-    ratio=Frob(U.old,Dsq.old,V.old,U,Dsq,V)
-    ratio=np.linalg.norm('fro')
-    #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
-  
-      
-
+    ##?????
+    U=U.dot(Vt)
+    
+    
+    
+    #Updating Xstar
+    xhat=U.dot(D**2).dot(V.T)
+    tempx[row,col]=xhat[row,col]
+    
+    # measuring convergence of B
+    D_squared=np.diagflat(D_squared)
+    denom=np.trace(D_squared_old**2)
+    UtU=D_squared.dot((U.T.dot(U_old)))
+    VtV=D_squared_old.dot(V_old.T.dot(V))
+    UVproduct= np.trace(UtU.dot(VtV))
+    numerator=denom+np.trace(D_squared**2)-2*UVproduct
+    Delta_B=numerator/max(denom,10**(-100))
+    
     #plt.scatter(time.time()-t,Delta_B,c="red")
+    
+    print "Updating A"
+    U_old=U
+    V_old=V
+    D_squared_old=D_squared
+    
+    A_tilda=(tempx.dot(V.dot(D))).dot(linalg.inv(D**2+Lambda*np.identity(r)))    
+    U,D_squared,Vt=linalg.svd(A_tilda.dot(D),full_matrices=False)
+    D=np.sqrt(D_squared)
+    D=np.diagflat(D)
+    A=U.dot(D)
+    
+    
+    ##???
+    V=V.dot(Vt)
+    
+    
+    #Updating Xstar
+    xhat=U.dot(D**2).dot(V.T)
+    tempx[row,col]=xhat[row,col]
+      
+      
+    # measuring convergence of A
+    D_squared=np.diagflat(D_squared)
+    denom=np.trace(D_squared_old**2)
+    UtU=D_squared.dot((U.T.dot(U_old)))
+    VtV=D_squared_old.dot(V_old.T.dot(V))
+    UVproduct= np.trace(UtU.dot(VtV))
+    numerator=denom+np.trace(D_squared**2)-2*UVproduct
+    Delta_A=numerator/max(denom,10**(-100))
     
     
     iterations+=1
     print "number of iterations: " +str(iterations)
-    #if(iter==maxit)warning(paste("Convergence not achieved by",maxit,"iterations"))
+    print "Delta_B = " +str(Delta_B)
+    print "Delta_A = " +str(Delta_A)
     
     # plotting the convergence rate
     #plt.scatter(time.time()-t,Delta_A,c="blue")
     
 
     #we break the loop upon convergence
-    #if((ratio > thresh)and(iter<maxit))
-    if(ratio > threshold):
+    if(Delta_A<threshold and Delta_B<threshold):
       break
+
     print "threshold not reached, continue"
     
     
@@ -205,3 +199,19 @@ def main():
 
 if __name__ == '__main__':
   main()
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
