@@ -42,19 +42,19 @@ def loadMatrix(filename):
   #return num
 def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
   denom=np.trace(D_squared_old**2)
-  UtU=D_squared.dot((U.T.dot(U_old)))
+  UtU=(U.T).dot(U_old)
+  UtU=D_squared.dot(UtU)
   VtV=D_squared_old.dot(V_old.T.dot(V))
   UVproduct= np.trace(UtU.dot(VtV))
   numerator=denom+np.trace(D_squared**2)-2*UVproduct
   ratio=numerator/max(denom,10**(-100))
-  return ratio 
+  return ratio
 
 # Algorithm 3.1
 def main():
   print "loading matrix X"
   X=loadMatrix(movielens100k)
   print("load data from movielens100k")
-  print(X)
 
   m,n=np.shape(X)
   # r is the rank
@@ -108,7 +108,7 @@ def main():
   xfill = X
   #---
   print "setting threshold"
-  threshold=10**(-3)
+  threshold=10**(-5)
   iterations=0
   
   # tempx is a copy of the sparse matrix to be used as Xstar
@@ -161,6 +161,8 @@ def main():
     #U=Asvd$u
     #Dsq=Asvd$d
     Dsq=np.diagflat(d)
+    print "Dsq:"
+    print Dsq
     #V=V %*% Asvd$v
     V=V.dot(v)
     #xhat=U %*%(Dsq*t(V))
@@ -168,6 +170,8 @@ def main():
     #xfill[xnas]=xhat[xnas]
     xfill[row,col]=xhat[row,col]
     ratio=Frob(Dsq,Dsq_old,U,U_old,V,V_old)
+    print "ratio is:" 
+    print ratio
     #ratio=np.linalg.norm('fro')
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
   
@@ -193,8 +197,6 @@ def main():
     
   #plt.title("Regularization Lambda is: "+str(Lambda) +"  rank is: " +str(r))
  # plt.show()
-
-
       
   #U=xfill%*%V
   U=xfill.dot(V)
@@ -210,10 +212,19 @@ def main():
   threshold_lambda=0
   #D=np.maximum(D-threshold_lambda,0)
   
-  full_matrix=(U.dot(D**2)).dot(V.T)
+  Dsq=np.diagflat(Dsq)
+  print "Dsq after svd:"
+  print Dsq
+  full_matrix=U.dot(Dsq).dot(V.T)
+
   #full_matrix=preprocessing.scale(full_matrix)
   np.savetxt("Full Matrix", full_matrix,delimiter=" ",fmt="%d")
 
 
 if __name__ == '__main__':
   main()
+  
+  
+  
+  
+  
