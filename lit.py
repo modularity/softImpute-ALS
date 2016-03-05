@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 
-from sklearn import preprocessing
+#from sklearn import preprocessing
 import scipy.sparse as sps
 import scipy
 from scipy import linalg
@@ -11,7 +11,7 @@ import random
 
 
 # data file
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+movielens100k="movielens/u.data"
 
 
 def generate_training_dataset(filename):
@@ -41,18 +41,18 @@ def loadMatrix(filename):
   #num = num/max(denom,1e-9)
   #return num
 def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
-  D_squared=np.diagflat(D_squared)
   denom=np.trace(D_squared_old**2)
   UtU=D_squared.dot((U.T.dot(U_old)))
   VtV=D_squared_old.dot(V_old.T.dot(V))
   UVproduct= np.trace(UtU.dot(VtV))
   numerator=denom+np.trace(D_squared**2)-2*UVproduct
-  Delta_B=numerator/max(denom,10**(-100))
+  ratio=numerator/max(denom,10**(-100))
+  return ratio 
 
 # Algorithm 3.1
 def main():
   print "loading matrix X"
-  X=loadMatrix(filename)
+  X=loadMatrix(movielens100k)
   print("load data from movielens100k")
   print(X)
 
@@ -186,35 +186,30 @@ def main():
 
     #we break the loop upon convergence
     #if((ratio > thresh)and(iter<maxit))
-    if(ratio > threshold):
+    if(ratio < threshold):
       break
     print "threshold not reached, continue"
     
     
   #plt.title("Regularization Lambda is: "+str(Lambda) +"  rank is: " +str(r))
  # plt.show()
-  
-  Bt=B.T
 
-  ABt=A.dot(Bt)
 
-  for cood in Omega:
-      i,j=cood
-      X[i,j] = X[i,j]-ABt[i,j]
       
-  xhat=X+ABt
-  M=xhat.dot(V)
-  U,D,Rt=linalg.svd(M,full_matrices=False)
-  V=V.dot(Rt.T)
-  #threshold the matrix D
-  threshold_lambda=40
-  D=np.maximum(D-threshold_lambda,0)
-  print D
-  D=np.diagflat(D)
+  #U=xfill%*%V
+  U=xfill.dot(V)
+  #sU=svd(U)
+  u,d,v=linalg.svd(U,full_matrices=False)
+  #U=sU$u
+  U=u
+  #Dsq=sU$d
+  Dsq=d
+  #V=V%*%sU$v
+  V=V.dot(v)
+  #Dsq=pmax(Dsq-lambda,0)
+  threshold_lambda=0
+  #D=np.maximum(D-threshold_lambda,0)
   
-  print "D is:"
-  print D
- 
   full_matrix=(U.dot(D**2)).dot(V.T)
   #full_matrix=preprocessing.scale(full_matrix)
   np.savetxt("Full Matrix", full_matrix,delimiter=" ",fmt="%d")

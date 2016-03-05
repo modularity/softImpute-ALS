@@ -102,7 +102,7 @@ def main():
   print("X todense")
   print(X)
 
-  nz=m*n-len(complement)
+  #nz=m*n-len(complement)
   xfill = X
   #---
   print "setting threshold"
