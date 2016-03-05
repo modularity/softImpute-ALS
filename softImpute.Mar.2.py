@@ -37,10 +37,11 @@ def loadMatrix(filename):
 def main():
   print "loading matrix X"
   X=loadMatrix(filename)
-  preprocessing.scale(X)
   m,n=np.shape(X)
-  r=20
-  Lambda=7
+  # r is the rank
+  r=5
+  #Lambda is the regularization parameter
+  Lambda=40
   # 1.initialize matrix U
   #m>>r
 
@@ -76,13 +77,16 @@ def main():
   col=[o[1] for o in Omega]
   #Omegat=Xt.keys()
   
+  X=X.todense()
+  X=preprocessing.scale(X)
   print "setting threshold"
-  threshold=10**(-5)
+  threshold=10**(-6)
   iterations=0
   
   # tempx is a copy of the sparse matrix to be used as Xstar
-  tempx=sps.coo_matrix(X)
-  tempx=tempx.todense()
+  #tempx=sps.coo_matrix(X)
+  #tempx=tempx.todense()
+  tempx=X
   t=time.time()
   while(True):
     U_old=U
@@ -90,7 +94,7 @@ def main():
     D_squared_old=D_squared
     print "updating B"
     
-    B_tilda_t=linalg.solve(D**2+Lambda*np.identity(r),D.dot(U.T*tempx))
+    B_tilda_t=linalg.solve(D**2+Lambda*np.identity(r),D.dot(U.T.dot(tempx)))
     B_tilda=B_tilda_t.T
     #updating V and D_squared
     V,D_squared,Vt=linalg.svd(B_tilda.dot(D),full_matrices=False)
@@ -99,7 +103,7 @@ def main():
     B=V.dot(D)
     
     ##?????
-    #U=U.dot(Vt)
+    U=U.dot(Vt)
     
     
     
@@ -123,7 +127,7 @@ def main():
     V_old=V
     D_squared_old=D_squared
     
-    A_tilda=(tempx*V.dot(D)).dot(linalg.inv(D**2+Lambda*np.identity(r)))    
+    A_tilda=(tempx.dot(V.dot(D))).dot(linalg.inv(D**2+Lambda*np.identity(r)))    
     U,D_squared,Vt=linalg.svd(A_tilda.dot(D),full_matrices=False)
     D=np.sqrt(D_squared)
     D=np.diagflat(D)
@@ -131,7 +135,7 @@ def main():
     
     
     ##???
-    #V=V.dot(Vt)
+    V=V.dot(Vt)
     
     
     #Updating Xstar
@@ -174,28 +178,24 @@ def main():
 
   for cood in Omega:
       i,j=cood
-      X[i,j] = X[i,j]-A[i,:].dot((Bt[:,j]))
+      X[i,j] = X[i,j]-ABt[i,j]
       
-  X=X.todense()
   Xstar=X+ABt
   M=Xstar.dot(V)
   U,D,Rt=linalg.svd(M,full_matrices=False)
   V=V.dot(Rt.T)
   #threshold the matrix D
-  threshold_lambda=50
+  threshold_lambda=40
   D=np.maximum(D-threshold_lambda,0)
+  print D
   D=np.diagflat(D)
   
   print "D is:"
   print D
-  print "U is:"
-  print U
-  print "V is:"
-  print V 
-  print "M is:"
-  print M.astype(int)
-  np.savetxt("M Matrix",M,delimiter=" ",fmt="%d")
-  np.savetxt("Full Matrix", U.dot(D**2).dot(V.T),delimiter=" ",fmt="%d")
+ 
+  full_matrix=(U.dot(D**2)).dot(V.T)
+  #full_matrix=preprocessing.scale(full_matrix)
+  np.savetxt("Full Matrix", full_matrix,delimiter=" ",fmt="%d")
 
 if __name__ == '__main__':
   main()
