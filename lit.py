@@ -8,6 +8,7 @@ import numpy as np
 #import matplotlib.pyplot as plt
 import time
 import random
+import matplotlib.pyplot as plt
 
 
 # data file
@@ -58,9 +59,9 @@ def main():
 
   m,n=np.shape(X)
   # r is the rank
-  r=5
+  r=40
   #Lambda is the regularization parameter
-  Lambda=40
+  Lambda=20
   # 1.initialize matrix U
   #m>>r
 
@@ -185,7 +186,7 @@ def main():
     #if(iter==maxit)warning(paste("Convergence not achieved by",maxit,"iterations"))
     
     # plotting the convergence rate
-    #plt.scatter(time.time()-t,Delta_A,c="blue")
+    plt.scatter(time.time()-t, ratio,c="blue")
     
 
     #we break the loop upon convergence
