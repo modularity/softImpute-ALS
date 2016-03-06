@@ -11,8 +11,8 @@ import random
 # data file
 filename="movielens/u.data"
 #filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="testing_dataset"
-training_file_location="training_dataset"
+testing_file_location="datsets/testing_dataset"
+training_file_location="datsets/training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
@@ -21,8 +21,8 @@ def generate_training_dataset(filename):
   testing_indices=list(set(population_indices)-set(training_indices))
   training_array=array[training_indices]
   testing_array=array[testing_indices]
-  np.savetxt("training_dataset",training_array,delimiter="\t",fmt="%d")
-  np.savetxt("testing_dataset",testing_array,delimiter="\t",fmt="%d")
+  np.savetxt("datsets/training_dataset",training_array,delimiter="\t",fmt="%d")
+  np.savetxt("datsets/testing_dataset",testing_array,delimiter="\t",fmt="%d")
   
 def RMSE(U,Dsq,V,file_location):
   Vt=V.T
