@@ -4,13 +4,15 @@ import math
 import scipy.sparse as sps
 from scipy import linalg
 import numpy as np
+#import matplotlib.pyplot as plt
 import time
 import random
 
 # data file
-filename="movielens/u.data"
-testing_file_location="******/testing_dataset"
-training_file_location="/*******/training_dataset"
+filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+#filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
+testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
+training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
@@ -22,11 +24,13 @@ def generate_training_dataset(filename):
   np.savetxt("training_dataset",training_array,delimiter="\t",fmt="%d")
   np.savetxt("testing_dataset",training_array,delimiter="\t",fmt="%d")
   
-def RMSE(U,Dsq,V,testing_file_location):
+def RMSE(U,Dsq,V,file_location)
   Vt=V.T
-  array=np.genfromtxt(testing_file_location)
+  array=np.genfromtxt(file_location)
   # m is the number of data points
   m,n=np.shape(array)
+  print "m is "+str(m)
+  print "n is "+str(m)
   A=U.dot(Dsq)
   userID=array[:,0]
   movieID=array[:,1]
@@ -95,7 +99,9 @@ def soft_als(training_file_location,rank=5,Lambda=1):
   print "changing X to dok_matrix"
   #Omega is the <'list'> of coordinates with nonzero entries
   X=X.todok()
+  print "getting the keys"
   Omega=X.keys()
+  print "finished getting the keys"
   all_keys=[]
   for i in range(m):
     for j in range(n):
@@ -114,7 +120,7 @@ def soft_als(training_file_location,rank=5,Lambda=1):
   xfill = X
 
   print "setting threshold"
-  threshold=10**(-3)
+  threshold=10**(-5)
   iterations=0
   
   t=time.time()
@@ -141,10 +147,12 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     #U=U%*%Bsvd$v
     U=np.dot(U,v)
     #xhat=U %*%(Dsq*t(V))
+    print "forming xhat"
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
+    print "matrix assignment"
     xfill[row,col]=xhat[row,col]
-
+    print "finished updating xfill"
     ###The next line we could have done later; this is to match with sparse version
     # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
     
@@ -153,6 +161,7 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     ## V step
     
     #A=t(xfill%*%V)
+  
     A=(np.dot(xfill,V)).T
     #if(lambda>0)A=A*(Dsq/(Dsq+lambda))
     A=np.dot(np.divide(Dsq,(Dsq+Lambda)),A)
@@ -162,14 +171,15 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     #U=Asvd$u
     #Dsq=Asvd$d
     Dsq=np.diagflat(d)
-    print "Dsq:"
-    print Dsq
+
     #V=V %*% Asvd$v
     V=V.dot(v)
     #xhat=U %*%(Dsq*t(V))
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
+    print "matrix assignment"
     xfill[row,col]=xhat[row,col]
+    print "finished updating xfill"
     ratio=Frob(Dsq,Dsq_old,U,U_old,V,V_old)
     print "ratio is: " +str(ratio)
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
@@ -202,9 +212,9 @@ def soft_als(training_file_location,rank=5,Lambda=1):
   Dsq=np.diagflat(Dsq)
   print "Dsq after svd:"
   print Dsq
-  full_matrix=U.dot(Dsq).dot(V.T)
+  #full_matrix=U.dot(Dsq).dot(V.T)
   print "saving U, Dsq, V to files \n"
-  np.savetxt("Full Matrix_"+str(r), full_matrix,delimiter=" ",fmt="%d")
+  #np.savetxt("Full Matrix_"+str(r), full_matrix,delimiter=" ",fmt="%d")
   np.savetxt("U_"+str(r), U,delimiter=" ")
   np.savetxt("Dsq_"+str(r), Dsq,delimiter=" ")
   np.savetxt("V_"+str(r), V,delimiter=" ")
@@ -212,9 +222,10 @@ def soft_als(training_file_location,rank=5,Lambda=1):
 
 
 def main():
-  the_list_of_ranks=np.arange(5,11,5)
+  the_list_of_ranks=np.arange(5,11,10)
   # a list of (rank,rmse) pairs
-  list_of_rmses=[]
+  list_of_testing_rmses=[]
+  list_of_training_rmses=[]
   for rank in the_list_of_ranks:
     print "rank is "+str(rank)
     soft_als(training_file_location,rank)
@@ -223,11 +234,20 @@ def main():
     U=np.genfromtxt("U_"+str(rank))
     Dsq=np.genfromtxt("Dsq_"+str(rank))
     V=np.genfromtxt("V_"+str(rank))
-    rmse=RMSE(U,Dsq,V,testing_file_location)
-    list_of_rmses.append((rank,rmse))
+    print "getting testing rmse"
+    testing_rmse=RMSE(U,Dsq,V,testing_file_location)
+    list_of_testing_rmses.append((rank,testing_rmse))
+    print "getting training rmse"
+    training_rmse=RMSE(U,Dsq,V,training_file_location)
+    list_of_training_rmses.append((rank,training_rmse))
+    
   print "saving the dictionary of rmses"
-  np.savetxt("dict_rmse",list_of_rmses,delimiter=" ")
-  print list_of_rmses
+  np.savetxt("dict_testing_rmse",list_of_testing_rmses,delimiter=" ")
+  np.savetxt("dict_training_rmse",list_of_training_rmses,delimiter=" ")
+  print "list_of_testing_rmses"
+  print list_of_testing _rmses
+  print "list_of_training_rmses"
+  print list_of_training_rmses
 
 
 if __name__ == '__main__':
