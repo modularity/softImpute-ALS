@@ -8,9 +8,9 @@ import time
 import random
 
 # data file
-
-testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
-training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
+filename="movielens/u.data"
+testing_file_location="******/testing_dataset"
+training_file_location="/*******/training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
