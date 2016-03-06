@@ -24,7 +24,7 @@ def generate_training_dataset(filename):
   np.savetxt("training_dataset",training_array,delimiter="\t",fmt="%d")
   np.savetxt("testing_dataset",training_array,delimiter="\t",fmt="%d")
   
-def RMSE(U,Dsq,V,file_location)
+def RMSE(U,Dsq,V,file_location):
   Vt=V.T
   array=np.genfromtxt(file_location)
   # m is the number of data points
