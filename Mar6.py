@@ -245,7 +245,7 @@ def main():
   np.savetxt("dict_testing_rmse",list_of_testing_rmses,delimiter=" ")
   np.savetxt("dict_training_rmse",list_of_training_rmses,delimiter=" ")
   print "list_of_testing_rmses"
-  print list_of_testing _rmses
+  print list_of_testing_rmses
   print "list_of_training_rmses"
   print list_of_training_rmses
 
