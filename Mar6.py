@@ -4,12 +4,11 @@ import math
 import scipy.sparse as sps
 from scipy import linalg
 import numpy as np
-#import matplotlib.pyplot as plt
 import time
 import random
 
 # data file
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+
 testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
 training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 def generate_training_dataset(filename):
