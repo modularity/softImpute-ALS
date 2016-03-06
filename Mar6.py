@@ -22,7 +22,7 @@ def generate_training_dataset(filename):
   training_array=array[training_indices]
   testing_array=array[testing_indices]
   np.savetxt("training_dataset",training_array,delimiter="\t",fmt="%d")
-  np.savetxt("testing_dataset",training_array,delimiter="\t",fmt="%d")
+  np.savetxt("testing_dataset",testing_array,delimiter="\t",fmt="%d")
   
 def RMSE(U,Dsq,V,file_location):
   Vt=V.T
