@@ -9,10 +9,10 @@ import time
 import random
 
 # data file
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+filename="movielens/u.data"
 #filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
-training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
+testing_file_location="testing_dataset"
+training_file_location="training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
