@@ -9,10 +9,10 @@ import time
 import random
 
 # data file
-filename="movielens/u.data"
+filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
 #filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="testing_dataset"
-training_file_location="training_dataset"
+testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
+training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
@@ -29,8 +29,6 @@ def RMSE(U,Dsq,V,file_location):
   array=np.genfromtxt(file_location)
   # m is the number of data points
   m,n=np.shape(array)
-  print "m is "+str(m)
-  print "n is "+str(m)
   A=U.dot(Dsq)
   userID=array[:,0]
   movieID=array[:,1]
@@ -114,25 +112,18 @@ def soft_als(training_file_location,rank=5,Lambda=1):
   col=[tuple[1] for tuple in complement]
   
   X=X.todense()
-  print("X todense")
-
   #nz=m*n-sum(xnas)
   xfill = X
-
   print "setting threshold"
   threshold=10**(-5)
   iterations=0
-  
   t=time.time()
   list_of_convergence=[]
-  print(X)
   while(True):
     U_old=U
     V_old=V
     Dsq_old=Dsq
-
     ## U step
-
     #B=t(U)%*%xfill
     B=np.dot(U.T, xfill)
     #if(lambda>0)B=B*(Dsq/(Dsq+lambda))
@@ -147,21 +138,16 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     #U=U%*%Bsvd$v
     U=np.dot(U,v)
     #xhat=U %*%(Dsq*t(V))
-    print "forming xhat"
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
     print "matrix assignment"
     xfill[row,col]=xhat[row,col]
-    print "finished updating xfill"
+    print "finished matrix assignment"
     ###The next line we could have done later; this is to match with sparse version
     # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
-    
     #obj=(.5*sum((xfill-xhat)[xnas==False]**2)+Lambda*sum(d))/nz
-    
     ## V step
-    
     #A=t(xfill%*%V)
-  
     A=(np.dot(xfill,V)).T
     #if(lambda>0)A=A*(Dsq/(Dsq+lambda))
     A=np.dot(np.divide(Dsq,(Dsq+Lambda)),A)
@@ -171,7 +157,6 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     #U=Asvd$u
     #Dsq=Asvd$d
     Dsq=np.diagflat(d)
-
     #V=V %*% Asvd$v
     V=V.dot(v)
     #xhat=U %*%(Dsq*t(V))
@@ -179,11 +164,10 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     #xfill[xnas]=xhat[xnas]
     print "matrix assignment"
     xfill[row,col]=xhat[row,col]
-    print "finished updating xfill"
+    print "finished matrix assignment"
     ratio=Frob(Dsq,Dsq_old,U,U_old,V,V_old)
     print "ratio is: " +str(ratio)
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
-    
     iterations+=1
     print "number of iterations: " +str(iterations)+"\n"
     #saving time vs ratio for plotting
@@ -191,7 +175,6 @@ def soft_als(training_file_location,rank=5,Lambda=1):
     list_of_convergence.append((current_time,ratio))
 # plotting the convergence rate
 #plt.scatter(time.time()-t,ratio,c="blue")
-    
     #we break the loop upon convergence
     if(ratio < threshold):
       break
@@ -222,7 +205,8 @@ def soft_als(training_file_location,rank=5,Lambda=1):
 
 
 def main():
-  the_list_of_ranks=np.arange(5,11,10)
+  the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
+  
   # a list of (rank,rmse) pairs
   list_of_testing_rmses=[]
   list_of_training_rmses=[]
