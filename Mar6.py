@@ -9,10 +9,9 @@ import time
 import random
 
 
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
-#filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
-training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
+filename="movielens/u.data"
+testing_file_location="testing_dataset"
+training_file_location="training_dataset"
 
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
@@ -209,7 +208,6 @@ def soft_als(training_file_location,rank=5,Lambda=40):
 def main():
 #3,5,7,10,12,15,20,25,30,40
   the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
-  
   # a list of (rank,rmse) pairs
   list_of_testing_rmses=[]
   list_of_training_rmses=[]
