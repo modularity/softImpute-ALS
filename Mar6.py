@@ -8,11 +8,12 @@ import numpy as np
 import time
 import random
 
-# data file
+
 filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
 #filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
 testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
 training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
+
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
@@ -64,24 +65,23 @@ def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
   return ratio
 
 # Algorithm 3.1
-def soft_als(training_file_location,rank=5,Lambda=20):
+def soft_als(training_file_location,rank=5,Lambda=40):
   print "loading matrix X"
   X=loadMatrix(training_file_location)
-  print("load data from movielens100k")
+
   m,n=np.shape(X)
   # r is the rank
   r=rank
   #Lambda is the regularization parameter
   # 1.initialize matrix U
-  #m>>r
-
   print "creating U"
   #U is an mxr matrix
   U = np.random.randn(m, r)
   #Calling QR Factorization on U
-  print "QR Factorization"
+  print "QR factorization."
   Q,R = linalg.qr(U)
   U=Q[:,0:r]
+  print "QR factorization complete."
   #U is now a matrix with orthonormal columns
   
   #D is an rxr identity matrix of type numpy.ndarray
@@ -94,16 +94,17 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   #B is an nxr matrix
   B=V.dot(D)
 
-  print "changing X to dok_matrix"
+  print "Transforming X to dok_matrix."
   #Omega is the <'list'> of coordinates with nonzero entries
   X=X.todok()
-  print "getting the keys"
+  print "Getting the keys"
   Omega=X.keys()
-  print "finished getting the keys"
   all_keys=[]
+  print "Creating all coordinates."
   for i in range(m):
     for j in range(n):
         all_keys.append((i,j))
+  print "Created all coordinates."
   all_keys_set=set(all_keys)
   Omega_set=set(Omega)
   complement_set=all_keys_set-Omega_set
@@ -111,12 +112,15 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   row=[tuple[0] for tuple in complement]
   col=[tuple[1] for tuple in complement]
   
+  print "Converting X to a dense matrix."
   X=X.todense()
+  print "Conversion complete."
   #nz=m*n-sum(xnas)
   xfill = X
-  print "setting threshold"
+  print "Setting threshold."
   threshold=10**(-5)
   iterations=0
+  print "Recording the initial time."
   t=time.time()
   list_of_convergence=[]
   while(True):
@@ -140,9 +144,9 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     #xhat=U %*%(Dsq*t(V))
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
-    print "matrix assignment"
+    print "Matrix assignment."
     xfill[row,col]=xhat[row,col]
-    print "finished matrix assignment"
+    print "Matrix assignment complete."
     ###The next line we could have done later; this is to match with sparse version
     # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
     #obj=(.5*sum((xfill-xhat)[xnas==False]**2)+Lambda*sum(d))/nz
@@ -162,14 +166,14 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     #xhat=U %*%(Dsq*t(V))
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
-    print "matrix assignment"
+    print "Matrix assignment."
     xfill[row,col]=xhat[row,col]
-    print "finished matrix assignment"
+    print "Matrix assignment complete."
     ratio=Frob(Dsq,Dsq_old,U,U_old,V,V_old)
-    print "ratio is: " +str(ratio)
+    print "Ratio: " +str(ratio)
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
     iterations+=1
-    print "number of iterations: " +str(iterations)+"\n"
+    print "Number of iterations: " +str(iterations)
     #saving time vs ratio for plotting
     current_time=time.time()-t
     list_of_convergence.append((current_time,ratio))
@@ -178,12 +182,12 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     #we break the loop upon convergence
     if(ratio < threshold):
       break
-    print "threshold not reached, continue"
+    print "Ratio above the threshold. Proceeding to the next iteration.\n"
     
 #plt.title("Regularization Lambda is: "+str(Lambda) +"  rank is: " +str(r))
 #plt.ylim(0,10**(-2))
 #plt.show()
-
+  print "Iterations complete.\n"
   U=xfill.dot(V)
   u,d,v=linalg.svd(U,full_matrices=False)
   U=u
@@ -193,10 +197,8 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   threshold_lambda=0
   
   Dsq=np.diagflat(Dsq)
-  print "Dsq after svd:"
-  print Dsq
   #full_matrix=U.dot(Dsq).dot(V.T)
-  print "saving U, Dsq, V to files \n"
+  print "Saving U, Dsq, V to files. \n"
   #np.savetxt("Full Matrix_"+str(r), full_matrix,delimiter=" ",fmt="%d")
   np.savetxt("U_"+str(r), U,delimiter=" ")
   np.savetxt("Dsq_"+str(r), Dsq,delimiter=" ")
