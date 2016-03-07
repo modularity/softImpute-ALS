@@ -11,8 +11,8 @@ import random
 # data file
 filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
 #filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="datsets/testing_dataset"
-training_file_location="datsets/training_dataset"
+testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
+training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
   population_size=len(array)
@@ -21,8 +21,8 @@ def generate_training_dataset(filename):
   testing_indices=list(set(population_indices)-set(training_indices))
   training_array=array[training_indices]
   testing_array=array[testing_indices]
-  np.savetxt("datsets/training_dataset",training_array,delimiter="\t",fmt="%d")
-  np.savetxt("datsets/testing_dataset",testing_array,delimiter="\t",fmt="%d")
+  np.savetxt("training_dataset",training_array,delimiter="\t",fmt="%d")
+  np.savetxt("testing_dataset",testing_array,delimiter="\t",fmt="%d")
   
 def RMSE(U,Dsq,V,file_location):
   Vt=V.T
@@ -64,7 +64,7 @@ def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
   return ratio
 
 # Algorithm 3.1
-def soft_als(training_file_location,rank=5,Lambda=1):
+def soft_als(training_file_location,rank=5,Lambda=20):
   print "loading matrix X"
   X=loadMatrix(training_file_location)
   print("load data from movielens100k")
@@ -205,6 +205,7 @@ def soft_als(training_file_location,rank=5,Lambda=1):
 
 
 def main():
+#3,5,7,10,12,15,20,25,30,40
   the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
   
   # a list of (rank,rmse) pairs
@@ -226,8 +227,8 @@ def main():
     list_of_training_rmses.append((rank,training_rmse))
     
   print "saving the dictionary of rmses"
-  np.savetxt("dict_testing_rmse",list_of_testing_rmses,delimiter=" ")
-  np.savetxt("dict_training_rmse",list_of_training_rmses,delimiter=" ")
+  np.savetxt("list_testing_rmse",list_of_testing_rmses,delimiter=" ")
+  np.savetxt("list_training_rmse",list_of_training_rmses,delimiter=" ")
   print "list_of_testing_rmses"
   print list_of_testing_rmses
   print "list_of_training_rmses"
@@ -236,4 +237,18 @@ def main():
 
 if __name__ == '__main__':
   main()
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
