@@ -9,9 +9,10 @@ import time
 import random
 
 
-filename="movielens/u.data"
-testing_file_location="testing_dataset"
-training_file_location="training_dataset"
+filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
+#filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
+testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
+training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
@@ -64,8 +65,8 @@ def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
   return ratio
 
 # Algorithm 3.1
-def soft_als(training_file_location,rank=5,Lambda=40):
-  print "loading matrix X"
+def soft_als(training_file_location,rank=5,Lambda=20):
+  print "Initializing matrix X."
   X=loadMatrix(training_file_location)
 
   m,n=np.shape(X)
@@ -73,7 +74,7 @@ def soft_als(training_file_location,rank=5,Lambda=40):
   r=rank
   #Lambda is the regularization parameter
   # 1.initialize matrix U
-  print "creating U"
+  print "Creating U."
   #U is an mxr matrix
   U = np.random.randn(m, r)
   #Calling QR Factorization on U
@@ -96,7 +97,7 @@ def soft_als(training_file_location,rank=5,Lambda=40):
   print "Transforming X to dok_matrix."
   #Omega is the <'list'> of coordinates with nonzero entries
   X=X.todok()
-  print "Getting the keys"
+  print "Getting the keys."
   Omega=X.keys()
   all_keys=[]
   print "Creating all coordinates."
@@ -191,10 +192,8 @@ def soft_als(training_file_location,rank=5,Lambda=40):
   u,d,v=linalg.svd(U,full_matrices=False)
   U=u
   Dsq=d
-  
   V=V.dot(v)
-  threshold_lambda=0
-  
+  Dsq=np.maximum(Dsq-Lambda,0)
   Dsq=np.diagflat(Dsq)
   #full_matrix=U.dot(Dsq).dot(V.T)
   print "Saving U, Dsq, V to files. \n"
@@ -203,30 +202,33 @@ def soft_als(training_file_location,rank=5,Lambda=40):
   np.savetxt("Dsq_"+str(r), Dsq,delimiter=" ")
   np.savetxt("V_"+str(r), V,delimiter=" ")
   np.savetxt("plot_data_for_rank_"+str(r),list_of_convergence,delimiter=" ")
+  print "Total elapsed time during iterations for rank "+str(r)+" is "+str(time.time()-t)+" seconds."
+  print "Current time stamp: "+str(time.ctime())+"\n"
 
 
 def main():
-#3,5,7,10,12,15,20,25,30,40
-  the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
+
+  #the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
+  the_list_of_ranks=[3,5,7,10]
   # a list of (rank,rmse) pairs
   list_of_testing_rmses=[]
   list_of_training_rmses=[]
   for rank in the_list_of_ranks:
-    print "rank is "+str(rank)
+    print "Rank is "+str(rank)
     soft_als(training_file_location,rank)
   for rank in the_list_of_ranks:
-    print "calculating rmse for rank "+str(rank)
+    print "Calculating rmse for rank "+str(rank)
     U=np.genfromtxt("U_"+str(rank))
     Dsq=np.genfromtxt("Dsq_"+str(rank))
     V=np.genfromtxt("V_"+str(rank))
-    print "getting testing rmse"
+    print "Getting testing rmse."
     testing_rmse=RMSE(U,Dsq,V,testing_file_location)
     list_of_testing_rmses.append((rank,testing_rmse))
-    print "getting training rmse"
+    print "getting training rmse."
     training_rmse=RMSE(U,Dsq,V,training_file_location)
     list_of_training_rmses.append((rank,training_rmse))
     
-  print "saving the dictionary of rmses"
+  print "Saving the dictionary of rmses."
   np.savetxt("list_testing_rmse",list_of_testing_rmses,delimiter=" ")
   np.savetxt("list_training_rmse",list_of_training_rmses,delimiter=" ")
   print "list_of_testing_rmses"
