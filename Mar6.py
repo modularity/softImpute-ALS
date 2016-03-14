@@ -9,10 +9,9 @@ import time
 import random
 
 
-filename="/Users/Derrick/Desktop/191Winter16/ml-100k/u.data"
-#filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
-testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
-training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
+movielens100k="movielens/u.data"
+##filename="/Users/Derrick/Desktop/191Winter16/ml-1m/ratings.dat"
+#testing_file_location="/Users/Derrick/Desktop/191Python/testing_dataset"
 
 def generate_training_dataset(filename):
   array=np.genfromtxt(filename,dtype="int")
@@ -70,6 +69,8 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   X=loadMatrix(training_file_location)
 
   m,n=np.shape(X)
+  print(m)
+  print(n)
   # r is the rank
   r=rank
   #Lambda is the regularization parameter
@@ -96,22 +97,10 @@ def soft_als(training_file_location,rank=5,Lambda=20):
 
   print "Transforming X to dok_matrix."
   #Omega is the <'list'> of coordinates with nonzero entries
-  X=X.todok()
-  print "Getting the keys."
-  Omega=X.keys()
-  all_keys=[]
-  print "Creating all coordinates."
-  for i in range(m):
-    for j in range(n):
-        all_keys.append((i,j))
-  print "Created all coordinates."
-  all_keys_set=set(all_keys)
-  Omega_set=set(Omega)
-  complement_set=all_keys_set-Omega_set
-  complement=list(complement_set)
-  row=[tuple[0] for tuple in complement]
-  col=[tuple[1] for tuple in complement]
-  
+  Omega = X.nonzero()
+  row = Omega[0]
+  col = Omega[1]
+
   print "Converting X to a dense matrix."
   X=X.todense()
   print "Conversion complete."
@@ -142,6 +131,8 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     #U=U%*%Bsvd$v
     U=np.dot(U,v)
     #xhat=U %*%(Dsq*t(V))
+    
+
     xhat=np.dot(U, Dsq.dot(V.T))
     #xfill[xnas]=xhat[xnas]
     print "Matrix assignment."
@@ -165,6 +156,8 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     V=V.dot(v)
     #xhat=U %*%(Dsq*t(V))
     xhat=np.dot(U, Dsq.dot(V.T))
+
+
     #xfill[xnas]=xhat[xnas]
     print "Matrix assignment."
     xfill[row,col]=xhat[row,col]
@@ -208,6 +201,9 @@ def soft_als(training_file_location,rank=5,Lambda=20):
 
 def main():
 
+  soft_als(movielens100k,rank=5,Lambda=20)
+
+"""
   #the_list_of_ranks=[3,5,7,10,12,15,20,25,30,40,60,75,100,125,150,175,200]
   the_list_of_ranks=[3,5,7,10]
   # a list of (rank,rmse) pairs
@@ -222,7 +218,7 @@ def main():
     Dsq=np.genfromtxt("Dsq_"+str(rank))
     V=np.genfromtxt("V_"+str(rank))
     print "Getting testing rmse."
-    testing_rmse=RMSE(U,Dsq,V,testing_file_location)
+  #  testing_rmse=RMSE(U,Dsq,V,testing_file_location)
     list_of_testing_rmses.append((rank,testing_rmse))
     print "getting training rmse."
     training_rmse=RMSE(U,Dsq,V,training_file_location)
@@ -235,7 +231,7 @@ def main():
   print list_of_testing_rmses
   print "list_of_training_rmses"
   print list_of_training_rmses
-
+"""
 
 if __name__ == '__main__':
   main()
