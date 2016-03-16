@@ -54,15 +54,33 @@ def loadMatrix(filename):
   #returns a coo_matrix X
   return X
 
-def Frob(D_squared,D_squared_old,U,U_old,V,V_old):
-  denom=np.trace(D_squared_old**2)
+def sparseTrace(A):
+  return sum(A.diagonal())
+  
+
+def Frob(Dsq,Dsq_old,U,U_old,V,V_old):
+  denom=sparseTrace(Dsq_old**2)
   UtU=(U.T).dot(U_old)
-  UtU=D_squared.dot(UtU)
-  VtV=D_squared_old.dot(V_old.T.dot(V))
-  UVproduct= np.trace(UtU.dot(VtV))
-  numerator=denom+np.trace(D_squared**2)-2*UVproduct
+  UtU=Dsq.dot(UtU)
+  VtV=Dsq_old.dot(V_old.T.dot(V))
+  UVproduct= sparseTrace(UtU.dot(VtV))
+  numerator=denom+sparseTrace(Dsq**2)-2*UVproduct
   ratio=numerator/max(denom,10**(-100))
   return ratio
+
+
+"""
+"def suv(u,v,irow,jcol):
+  dd=dim(u)
+  nnrow=dd[0]
+  nncol=nrow(v)
+  nrank=dd[2]
+  .Fortran("suv",
+           nnrow,nncol,nrank,u,v,irow,jcol,nomega,
+           r=double(nomega),
+           PACKAGE="softImpute"
+           )$r
+"""
 
 # Algorithm 3.1
 def soft_als(training_file_location,rank=5,Lambda=20):
@@ -91,9 +109,12 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   A=U.dot(D)
 
   #V is nxr
-  V=sps.csr_matrix( (n,r) )
+  #V=sps.csr_matrix( (n,r) )
+  V=sps.rand(n,r, format="csc")
+  #m, n, density=0.01, format='coo', dtype=None, random_state=None
   #B is an nxr matrix
   B=V.dot(D)
+
 
   print "Transforming X to dok_matrix."
   #Omega is the <'list'> of coordinates with nonzero entries
@@ -102,7 +123,7 @@ def soft_als(training_file_location,rank=5,Lambda=20):
   col = Omega[1]
   
   #nz=m*n-sum(xnas)
-  xfill = X
+  xfill = sps.lil_matrix(X)
   print "Setting threshold."
   threshold=10**(-5)
   iterations=0
@@ -113,39 +134,28 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     U_old=U
     V_old=V
     Dsq_old=Dsq
+   
     ## U step
     #B=t(U)%*%xfill
-    B=U.T.dot(xfill)
+    B=(U.T).dot(xfill)
     #if(lambda>0)B=B*(Dsq/(Dsq+lambda))
-
-    #csc.multiply(csc).sum(1)
-    LambdaMatrix = sps.identity(r)
+    LambdaMatrix = sps.dia_matrix(Dsq.shape)
     LambdaMatrix.setdiag(Lambda)
-    denom = Dsq + LambdaMatrix 
-    dsqRatio = Dsq / denom
-    dsqRatio = sps.csc_matrix(dsqRatio)
-
+    dsqRatio = sps.csc_matrix( Dsq/(Dsq+LambdaMatrix) )
     B=dsqRatio.dot(B)
     #Bsvd=svd(t(B))
-    u,d,v=sla.svds(B.T)
+    u,d,v=sla.svds(B.T, k=B.shape[0]/2)
     #V=Bsvd$u
     V=sps.csc_matrix(u)
     #Dsq=(Bsvd$d)
-
-    print (d.shape[0])
-
-    Dsq =sps.csc_matrix(d)
-    #U=U%*%Bsvd$v
-    v = sps.csc_matrix(v.T)
-    U=U.dot(v)
+    D=sps.dia_matrix( (d.shape[0], d.shape[0]) )
+    D.setdiag(d)
+    Dsq = sps.dia_matrix(D**2 )
+    #U=U%*%Bsvd$v 
+    v=sps.csc_matrix(v.T) 
+    U=( U.dot(v) ).tocsc()
     #xhat=U %*%(Dsq*t(V))
-    print(Dsq.shape[0], Dsq.shape[1])
-    print(V.shape[0], V.shape[1])
-    print(U.shape[0], U.shape[1])
-    a=Dsq*V.T 
-
-
-    xhat=U.dot(Dsq*V.T)
+    xhat=U.dot( (Dsq)*(V.T) )
     #xfill[xnas]=xhat[xnas]
     print "Matrix assignment."
     xfill[row,col]=xhat[row,col]
@@ -153,46 +163,57 @@ def soft_als(training_file_location,rank=5,Lambda=20):
     ###The next line we could have done later; this is to match with sparse version
     # if(trace.it) obj=(.5*sum( (xfill-xhat)[!xnas]^2)+lambda*sum(Dsq))/nz
     #obj=(.5*sum((xfill-xhat)[xnas==False]**2)+Lambda*sum(d))/nz
+    
+
     ## V step
     #A=t(xfill%*%V)    
     A=(xfill.dot(V)).T
     #if(lambda>0)A=A*(Dsq/(Dsq+lambda))
-    denom = Dsq + LambdaMatrix 
+    #LambdaMatrix.reshape(  Dsq.shape[0], Dsq.shape[1] )
+    LambdaMatrix = sps.dia_matrix(Dsq.shape)
+    LambdaMatrix.setdiag(Lambda)
+    denom = Dsq + LambdaMatrix
     dsqRatio = Dsq / denom
-    dsqRatio = sps.csc_matrix(dsqRatio)
-    A=np.dot(np.divide(Dsq,(Dsq+Lambda)),A)
+    dsqRatio = sps.csc_matrix(dsqRatio) 
+    A=dsqRatio*A
+    ##A=np.dot(np.divide(Dsq,(Dsq+Lambda)),A)
     #Asvd=svd(t(A))
-    u,d,v=sla.svd(B.T)
-    U=sps.csc_matrix(u)
+    #u,d,v=sla.svds(A.T)
+    u,d,v=sla.svds(A.T, k=A.shape[0]/2)
     #U=Asvd$u
+    U=sps.csc_matrix(u)
     #Dsq=Asvd$d
-    Dsq =sps.csc_matrix(d)
+    D=sps.dia_matrix( (d.shape[0], d.shape[0]) )
+    D.setdiag(d)
+    Dsq = sps.dia_matrix(D**2 )
     #V=V %*% Asvd$v
-    v=sps.csc_matrix(v)
+    v=sps.csc_matrix(v.T)
     V=V.dot(v)
     #xhat=U %*%(Dsq*t(V))
-    U.dot(Dsq(V.T))
-    xhat=U.dot(Dsq(V.T))
-
+    xhat=U.dot(Dsq*(V.T))
     #xfill[xnas]=xhat[xnas]
     print "Matrix assignment."
     xfill[row,col]=xhat[row,col]
     print "Matrix assignment complete."
+    
     ratio=Frob(Dsq,Dsq_old,U,U_old,V,V_old)
     print "Ratio: " +str(ratio)
     #if(trace.it) cat(iter, ":", "obj",format(round(obj,5)),"ratio", ratio, "\n")
     iterations+=1
     print "Number of iterations: " +str(iterations)
+    
     #saving time vs ratio for plotting
     current_time=time.time()-t
     list_of_convergence.append((current_time,ratio))
-# plotting the convergence rate
-#plt.scatter(time.time()-t,ratio,c="blue")
+    
+    # plotting the convergence rate
+    #plt.scatter(time.time()-t,ratio,c="blue")
     #we break the loop upon convergence
     if(ratio < threshold):
       break
     print "Ratio above the threshold. Proceeding to the next iteration.\n"
     
+
 #plt.title("Regularization Lambda is: "+str(Lambda) +"  rank is: " +str(r))
 #plt.ylim(0,10**(-2))
 #plt.show()
