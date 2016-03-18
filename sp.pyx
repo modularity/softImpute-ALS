@@ -22,7 +22,7 @@ training_file_location="/Users/Derrick/Desktop/191Python/training_dataset"
 
 #k is the number of columns in A
 #function returns the i-th row of A dotted with the j-th column of B
-  
+@cython.boundscheck(False)
 def AomgB(np.ndarray[cDOUBLE,ndim=2] xfill, np.ndarray[cDOUBLE,ndim=2] xhat, np.ndarray[int,ndim=1] row, np.ndarray[int,ndim=1] col, int cardinality, int rank):
   for t in range(cardinality):
     xfill[row[t],col[t]]=xhat[row[t],col[t]]
